@@ -1,0 +1,50 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE/editor settings
+.vscode/
+.idea/
+.antigravitycli/
+
+# Environment variables and local config
+.env
+.env.*
+*.local
+
+# Test, coverage, and build output
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+docs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Uncomment these if data/model/media files should stay local only.
+# dataset/
+# models/*.h5
+# models/*.zip
+# assets/*.MP4
+# assets/*.mp4
+
+report_outline.md

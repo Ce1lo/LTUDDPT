@@ -1,0 +1,3 @@
+0 open_eyes
+1 closed_eyes
+2 no_object

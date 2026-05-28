@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ôn tập Project: Cảnh báo buồn ngủ bằng theo dõi mắt</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-soft: #111827;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --primary-soft: #dbeafe;
+      --green: #16a34a;
+      --orange: #f97316;
+      --red: #dc2626;
+      --yellow: #facc15;
+      --border: #e2e8f0;
+      --code-bg: #020617;
+      --code-text: #e5e7eb;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f8fafc;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    header {
+      background: radial-gradient(circle at top left, #1d4ed8, #0f172a 55%);
+      color: white;
+      padding: 56px 20px 72px;
+    }
+
+    .container {
+      width: min(1120px, 92%);
+      margin: 0 auto;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 36px;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(32px, 5vw, 58px);
+      line-height: 1.08;
+      margin: 0 0 18px;
+      letter-spacing: -1.2px;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: #dbeafe;
+      margin: 0 0 28px;
+      max-width: 760px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+
+    .btn-primary {
+      background: white;
+      color: #1d4ed8;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.12);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .hero-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(12px);
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    .signal-box {
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--text);
+      border-radius: 22px;
+      padding: 18px;
+      margin-top: 14px;
+    }
+
+    .signal-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+
+    .signal-row:last-child {
+      border-bottom: 0;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px 0;
+    }
+
+    nav a {
+      white-space: nowrap;
+      text-decoration: none;
+      color: #334155;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    nav a:hover {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    section {
+      padding: 58px 0;
+    }
+
+    .section-head {
+      margin-bottom: 26px;
+    }
+
+    .section-head h2 {
+      font-size: clamp(26px, 4vw, 38px);
+      margin: 0 0 10px;
+      letter-spacing: -0.7px;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 780px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .flow-step {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px 10px;
+      text-align: center;
+      min-height: 90px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .flow-step strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .flow-step span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .arrow {
+      text-align: center;
+      color: var(--primary);
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 16px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .time-label {
+      background: var(--bg);
+      color: white;
+      border-radius: 16px;
+      padding: 10px 12px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .timeline-content {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+    }
+
+    .timeline-content h3 {
+      margin: 0 0 8px;
+    }
+
+    .timeline-content ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    .accordion {
+      display: grid;
+      gap: 12px;
+    }
+
+    .accordion-item {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .accordion-button {
+      width: 100%;
+      padding: 16px 18px;
+      background: white;
+      border: 0;
+      font-size: 16px;
+      font-weight: 800;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .accordion-content {
+      display: none;
+      padding: 0 18px 18px;
+      color: var(--muted);
+    }
+
+    .accordion-item.active .accordion-content {
+      display: block;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 18px;
+      border-radius: 18px;
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .formula {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 20px;
+      padding: 20px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 800;
+      color: #1d4ed8;
+      margin: 14px 0;
+    }
+
+    .simulator {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .sim-display {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .metric span {
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .control-btn {
+      border: 0;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+    }
+
+    .control-btn.red {
+      background: var(--red);
+    }
+
+    .control-btn.gray {
+      background: #475569;
+    }
+
+    .alert-box {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: #ecfdf5;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      font-weight: 800;
+    }
+
+    .alert-box.danger {
+      background: #fef2f2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: white;
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 800;
+      color: #334155;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .quiz-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+
+    .quiz-card h3 {
+      margin-top: 0;
+    }
+
+    .option {
+      display: block;
+      width: 100%;
+      text-align: left;
+      margin: 8px 0;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+
+    .option.correct {
+      background: #dcfce7;
+      border-color: #86efac;
+    }
+
+    .option.wrong {
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .checklist li {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .checklist input {
+      margin-top: 6px;
+      transform: scale(1.2);
+    }
+
+    footer {
+      background: var(--bg);
+      color: #cbd5e1;
+      padding: 32px 0;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid,
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow {
+        transform: rotate(90deg);
+      }
+
+      .timeline-item {
+        grid-template-columns: 1fr;
+      }
+
+      .sim-display {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .sim-display {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero" id="top">
+    <div class="container hero-grid">
+      <div>
+        <div class="badge">🚗 AI Computer Vision Project</div>
+        <h1>Cảnh báo buồn ngủ bằng theo dõi mắt</h1>
+        <p>
+          Landing page ôn tập toàn bộ quá trình xây dựng hệ thống: từ webcam, MediaPipe, EAR,
+          model Teachable Machine, đến logic cảnh báo dựa trên thời gian nhắm mắt, tần suất chớp mắt
+          và điểm buồn ngủ tích lũy.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#timeline">Xem timeline</a>
+          <a class="btn btn-secondary" href="#simulator">Thử mô phỏng</a>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <h2 style="margin:0 0 8px">Tóm tắt hệ thống</h2>
+        <p style="margin:0;color:#dbeafe">Mắt nhắm lâu hoặc chớp quá nhiều thì phát cảnh báo.</p>
+        <div class="signal-box">
+          <div class="signal-row"><span>EAR</span><strong>Đo độ mở mắt</strong></div>
+          <div class="signal-row"><span>AI Model</span><strong>Open / Closed</strong></div>
+          <div class="signal-row"><span>Closed Time</span><strong>Nhắm mắt liên tục</strong></div>
+          <div class="signal-row"><span>Blink Rate</span><strong>Số lần chớp / 10s</strong></div>
+          <div class="signal-row"><span>Score</span><strong>Điểm buồn ngủ tích lũy</strong></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="#overview">Tổng quan</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#timeline">Timeline</a>
+      <a href="#ear">EAR</a>
+      <a href="#model">Model</a>
+      <a href="#logic">Logic cảnh báo</a>
+      <a href="#simulator">Mô phỏng</a>
+      <a href="#code">Code lõi</a>
+      <a href="#report">Báo cáo</a>
+      <a href="#quiz">Quiz</a>
+    </div>
+  </nav>
+
+  <main>
+    <section id="overview">
+      <div class="container">
+        <div class="section-head">
+          <h2>1. Tổng quan đề tài</h2>
+          <p>
+            Đề tài hướng đến xây dựng hệ thống hỗ trợ lái xe có khả năng phát hiện dấu hiệu buồn ngủ thông qua mắt.
+            Hệ thống sử dụng camera để theo dõi mắt theo thời gian thực, sau đó kết hợp thuật toán xử lý ảnh và mô hình AI
+            để xác định người lái có đang buồn ngủ hay không.
+          </p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <span class="tag">Input</span>
+            <h3>Camera realtime</h3>
+            <p>Webcam lấy từng frame liên tục bằng OpenCV để đưa vào pipeline xử lý.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Processing</span>
+            <h3>MediaPipe + EAR + AI</h3>
+            <p>MediaPipe xác định điểm mắt, EAR đo độ mở mắt, model AI phân loại Open/Closed.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Output</span>
+            <h3>Cảnh báo</h3>
+            <p>Khi nhắm mắt lâu hoặc chớp mắt quá nhiều trong thời gian ngắn, hệ thống phát alarm.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pipeline" style="background:#eef2ff">
+      <div class="container">
+        <div class="section-head">
+          <h2>2. Pipeline xử lý cuối cùng</h2>
+          <p>Đây là luồng xử lý đã chốt sau nhiều lần sửa logic.</p>
+        </div>
+
+        <div class="flow">
+          <div class="flow-step"><strong>Webcam</strong><span>Đọc frame</span></div>
+          <div class="arrow">→</div>
+          <div class="flow-step"><strong>MediaPipe</strong><span>Detect mặt/mắt</span></div>
+          <div class="arrow">→</div>
+          <div class="flow-step"><strong>EAR + Model</strong><span>Xác định mở/nhắm</span></div>
+          <div class="arrow">→</div>
+          <div class="flow-step"><strong>Alert Logic</strong><span>Cảnh báo</span></div>
+        </div>
+
+        <pre><code>Webcam
+↓
+MediaPipe Face Mesh
+↓
+Tính EAR
+↓
+Crop vùng mắt
+↓
+Model Teachable Machine predict Open/Closed
+↓
+Kết hợp EAR + model
+↓
+Tính continuous_closed_time, blink_rate, drowsiness_score
+↓
+Nếu vượt ngưỡng → phát alarm</code></pre>
+      </div>
+    </section>
+
+    <section id="timeline">
+      <div class="container">
+        <div class="section-head">
+          <h2>3. Timeline toàn bộ quá trình làm</h2>
+          <p>Phần này dùng để ôn lại quá trình triển khai và có thể đưa vào báo cáo/thuyết trình.</p>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="time-label">Bước 1</div>
+            <div class="timeline-content">
+              <h3>Chốt hướng làm</h3>
+              <p>Ban đầu chọn hướng dùng Teachable Machine để train model Open/Closed, Python xử lý realtime.</p>
+              <ul>
+                <li>Có phần train data để đáp ứng yêu cầu môn học.</li>
+                <li>Có phần xử lý ảnh realtime để hệ thống hoạt động thật.</li>
+                <li>Không chỉ dùng AI đơn thuần, mà kết hợp thêm EAR để tăng tính kỹ thuật.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 2</div>
+            <div class="timeline-content">
+              <h3>Cài môi trường</h3>
+              <p>Dùng Python 3.10 để tránh lỗi tương thích TensorFlow, MediaPipe.</p>
+              <pre><code>python -m venv .venv
+.venv\Scripts\activate
+pip install opencv-python mediapipe numpy tensorflow pygame pillow</code></pre>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 3</div>
+            <div class="timeline-content">
+              <h3>Mở webcam bằng OpenCV</h3>
+              <p>Viết bản đầu tiên chỉ để bật camera, đọc frame và hiển thị hình ảnh realtime.</p>
+              <ul>
+                <li><code>cv2.VideoCapture(0)</code>: mở webcam.</li>
+                <li><code>cap.read()</code>: đọc từng frame.</li>
+                <li><code>cv2.imshow()</code>: hiển thị realtime.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 4</div>
+            <div class="timeline-content">
+              <h3>Thêm MediaPipe Face Mesh</h3>
+              <p>Dùng MediaPipe để lấy landmark quanh mắt thay vì tự detect mắt bằng Haar Cascade.</p>
+              <ul>
+                <li>Detect mặt.</li>
+                <li>Lấy các điểm mắt trái/phải.</li>
+                <li>Vẽ chấm landmark để kiểm tra.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 5</div>
+            <div class="timeline-content">
+              <h3>Tính EAR</h3>
+              <p>EAR dùng để đo độ mở mắt. Mắt mở thì EAR cao, mắt nhắm thì EAR thấp.</p>
+              <ul>
+                <li>Mở mắt đo được khoảng 0.32–0.40.</li>
+                <li>Nhắm mắt đo được khoảng 0.07–0.18.</li>
+                <li>Chốt ngưỡng <code>EAR_THRESHOLD = 0.22</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 6</div>
+            <div class="timeline-content">
+              <h3>Train model bằng Teachable Machine</h3>
+              <p>Dataset gồm hai class: Open và Closed. Sau khi train, export ra Keras model.</p>
+              <ul>
+                <li><code>keras_model.h5</code></li>
+                <li><code>labels.txt</code></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 7</div>
+            <div class="timeline-content">
+              <h3>Load model vào Python</h3>
+              <p>Viết <code>classifier.py</code> để resize ảnh mắt về 224x224, normalize và predict Open/Closed.</p>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 8</div>
+            <div class="timeline-content">
+              <h3>Crop mắt realtime</h3>
+              <p>Dựa vào landmark mắt, crop vùng mắt trái/phải rồi đưa vào model.</p>
+              <ul>
+                <li>Mở cửa sổ Left Eye Crop / Right Eye Crop để debug.</li>
+                <li>Kiểm tra xem model thật sự đang nhìn đúng vùng mắt hay không.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 9</div>
+            <div class="timeline-content">
+              <h3>Kết hợp EAR + Model</h3>
+              <p>Ban đầu dùng điều kiện quá gắt nên đôi khi nhắm mắt vẫn bị Open. Sau đó sửa để EAR quyết định chính, model hỗ trợ.</p>
+              <pre><code>is_closed = (
+    ear < EAR_THRESHOLD
+    or (model_label == "Closed" and model_conf >= MODEL_CONFIDENCE_THRESHOLD)
+)</code></pre>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 10</div>
+            <div class="timeline-content">
+              <h3>Thêm cảnh báo nhắm mắt lâu</h3>
+              <p>Nếu người dùng nhắm mắt liên tục vượt ngưỡng, hệ thống phát alarm.</p>
+              <pre><code>continuous_closed_time >= 2.0</code></pre>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 11</div>
+            <div class="timeline-content">
+              <h3>Thêm drowsiness score</h3>
+              <p>Thay vì mở mắt là reset về 0, score sẽ giảm từ từ. Cách này bắt được trạng thái lim dim liên tục.</p>
+              <pre><code>if is_closed:
+    drowsiness_score += delta_time * 1.0
+else:
+    drowsiness_score -= delta_time * 0.5</code></pre>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 12</div>
+            <div class="timeline-content">
+              <h3>Thêm blink rate</h3>
+              <p>Đếm số lần chớp mắt trong 10 giây. Nếu chớp quá nhiều thì cảnh báo.</p>
+              <pre><code>BLINK_WINDOW_SECONDS = 10
+BLINK_THRESHOLD = 10</code></pre>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="time-label">Bước 13</div>
+            <div class="timeline-content">
+              <h3>Chốt logic cuối</h3>
+              <p>Alarm xảy ra khi có một trong các điều kiện sau:</p>
+              <ul>
+                <li>Nhắm mắt liên tục ≥ 2 giây.</li>
+                <li>Chớp mắt ≥ 10 lần trong 10 giây.</li>
+                <li>Score cao và hiện tại vẫn đang nhắm mắt.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ear" style="background:#f1f5f9">
+      <div class="container">
+        <div class="section-head">
+          <h2>4. EAR là gì?</h2>
+          <p>EAR là chỉ số hình học dùng để đo mắt đang mở hay nhắm dựa trên khoảng cách giữa các landmark quanh mắt.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Công thức</h3>
+            <div class="formula">EAR = (|p2-p6| + |p3-p5|) / (2 × |p1-p4|)</div>
+            <p>
+              Hai khoảng cách dọc thể hiện độ mở mắt. Khoảng cách ngang là độ rộng mắt.
+              Khi nhắm mắt, khoảng cách dọc giảm mạnh nên EAR giảm.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3>Ngưỡng thực nghiệm</h3>
+            <p>Dựa trên quá trình test:</p>
+            <pre><code>Mắt mở:  0.32 - 0.40
+Mắt nhắm: 0.07 - 0.18
+
+EAR_THRESHOLD = 0.22</code></pre>
+            <p>Ngưỡng này cần chỉnh theo từng người, camera, ánh sáng và khoảng cách với webcam.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="model">
+      <div class="container">
+        <div class="section-head">
+          <h2>5. Phần model AI</h2>
+          <p>Model AI dùng để đáp ứng yêu cầu có train data trong đồ án, đồng thời hỗ trợ xác nhận trạng thái mắt.</p>
+        </div>
+
+        <div class="accordion">
+          <div class="accordion-item active">
+            <button class="accordion-button">Dataset gồm gì? <span>＋</span></button>
+            <div class="accordion-content">
+              Dataset gồm hai class chính: <strong>Open</strong> và <strong>Closed</strong>. Mỗi class nên có nhiều ảnh ở các điều kiện khác nhau như sáng/tối, có kính, không kính, gần/xa camera.
+            </div>
+          </div>
+          <div class="accordion-item">
+            <button class="accordion-button">Vì sao vẫn cần EAR nếu đã có model? <span>＋</span></button>
+            <div class="accordion-content">
+              Model có thể sai nếu crop mắt lệch, ánh sáng xấu hoặc dataset chưa đủ đa dạng. EAR là tín hiệu hình học đơn giản, realtime nhanh, giúp hỗ trợ model.
+            </div>
+          </div>
+          <div class="accordion-item">
+            <button class="accordion-button">Vì sao không dùng model một mình? <span>＋</span></button>
+            <div class="accordion-content">
+              Nếu chỉ dùng model, hệ thống phụ thuộc hoàn toàn vào dataset. Kết hợp EAR + model giúp hệ thống ổn định hơn và giải thích được trong báo cáo.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="logic" style="background:#eef2ff">
+      <div class="container">
+        <div class="section-head">
+          <h2>6. Logic cảnh báo cuối cùng</h2>
+          <p>Đây là phần quan trọng nhất để hệ thống đúng với đề bài: thời gian nhắm mắt lâu và tần suất nhắm mắt lớn.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <span class="tag">Điều kiện 1</span>
+            <h3>Nhắm mắt liên tục</h3>
+            <p>Nếu mắt nhắm liên tục từ 2 giây trở lên, hệ thống coi là nguy hiểm và phát cảnh báo.</p>
+            <pre><code>continuous_closed_time >= 2.0</code></pre>
+          </div>
+
+          <div class="card">
+            <span class="tag">Điều kiện 2</span>
+            <h3>Chớp mắt quá nhiều</h3>
+            <p>Nếu số lần chớp mắt trong 10 giây vượt ngưỡng, hệ thống cảnh báo vì có dấu hiệu mệt mỏi.</p>
+            <pre><code>blink_rate >= 10</code></pre>
+          </div>
+
+          <div class="card">
+            <span class="tag">Điều kiện 3</span>
+            <h3>Score tích lũy</h3>
+            <p>Score tăng khi nhắm mắt, giảm từ từ khi mở mắt. Score chỉ gây alarm nếu hiện tại vẫn đang nhắm mắt.</p>
+            <pre><code>is_closed and score >= 2.5</code></pre>
+          </div>
+        </div>
+
+        <pre><code>long_closed_alert = continuous_closed_time >= CONTINUOUS_CLOSED_THRESHOLD
+blink_rate_alert = blink_rate >= BLINK_THRESHOLD
+score_alert = is_closed and drowsiness_score >= DROWSINESS_SCORE_THRESHOLD
+
+if long_closed_alert or blink_rate_alert or score_alert:
+    start_alarm()
+else:
+    stop_alarm()</code></pre>
+      </div>
+    </section>
+
+    <section id="simulator">
+      <div class="container">
+        <div class="section-head">
+          <h2>7. Mô phỏng tương tác logic cảnh báo</h2>
+          <p>Bấm các nút bên dưới để hiểu cách score, blink rate và alarm hoạt động.</p>
+        </div>
+
+        <div class="simulator">
+          <div class="sim-display">
+            <div class="metric"><strong>Trạng thái mắt</strong><span id="simEye">OPEN</span></div>
+            <div class="metric"><strong>Closed Time</strong><span id="simClosed">0.0s</span></div>
+            <div class="metric"><strong>Score</strong><span id="simScore">0.0</span></div>
+            <div class="metric"><strong>Blink Rate</strong><span id="simBlink">0/10s</span></div>
+          </div>
+
+          <div class="controls">
+            <button class="control-btn red" onclick="setEyeClosed(true)">Nhắm mắt</button>
+            <button class="control-btn" onclick="setEyeClosed(false)">Mở mắt</button>
+            <button class="control-btn gray" onclick="simulateBlink()">Chớp 1 lần</button>
+            <button class="control-btn gray" onclick="resetSim()">Reset</button>
+          </div>
+
+          <div id="simAlert" class="alert-box">Trạng thái an toàn</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="code" style="background:#f1f5f9">
+      <div class="container">
+        <div class="section-head">
+          <h2>8. Code lõi cần nhớ</h2>
+          <p>Chọn tab để xem các đoạn code quan trọng trong project.</p>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="openTab(event, 'tab-config')">config.py</button>
+          <button class="tab-btn" onclick="openTab(event, 'tab-ear')">ear.py</button>
+          <button class="tab-btn" onclick="openTab(event, 'tab-classifier')">classifier.py</button>
+          <button class="tab-btn" onclick="openTab(event, 'tab-logic')">logic cảnh báo</button>
+        </div>
+
+        <div id="tab-config" class="tab-panel active">
+          <pre><code>EAR_THRESHOLD = 0.22
+
+CONTINUOUS_CLOSED_THRESHOLD = 2.0
+DROWSINESS_SCORE_THRESHOLD = 2.5
+MODEL_CONFIDENCE_THRESHOLD = 0.80
+
+BLINK_WINDOW_SECONDS = 10
+BLINK_THRESHOLD = 10</code></pre>
+        </div>
+
+        <div id="tab-ear" class="tab-panel">
+          <pre><code>def calculate_ear(eye_points):
+    p1, p2, p3, p4, p5, p6 = eye_points
+
+    vertical_1 = euclidean_distance(p2, p6)
+    vertical_2 = euclidean_distance(p3, p5)
+    horizontal = euclidean_distance(p1, p4)
+
+    if horizontal == 0:
+        return 0
+
+    ear = (vertical_1 + vertical_2) / (2.0 * horizontal)
+    return ear</code></pre>
+        </div>
+
+        <div id="tab-classifier" class="tab-panel">
+          <pre><code>def predict(self, image):
+    img = cv2.resize(image, (224, 224))
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = img.astype(np.float32)
+    img = (img / 127.5) - 1
+    img = np.expand_dims(img, axis=0)
+
+    prediction = self.model.predict(img, verbose=0)
+    index = np.argmax(prediction)
+
+    label = self.labels[index]
+    confidence = prediction[0][index]
+
+    return label, confidence</code></pre>
+        </div>
+
+        <div id="tab-logic" class="tab-panel">
+          <pre><code>is_closed = (
+    ear < EAR_THRESHOLD
+    or (
+        model_label == "Closed"
+        and model_conf >= MODEL_CONFIDENCE_THRESHOLD
+    )
+)
+
+if is_closed:
+    drowsiness_score += delta_time * 1.0
+else:
+    drowsiness_score -= delta_time * 0.5
+
+drowsiness_score = max(0.0, drowsiness_score)
+
+long_closed_alert = continuous_closed_time >= CONTINUOUS_CLOSED_THRESHOLD
+blink_rate_alert = blink_rate >= BLINK_THRESHOLD
+score_alert = is_closed and drowsiness_score >= DROWSINESS_SCORE_THRESHOLD
+
+if long_closed_alert or blink_rate_alert or score_alert:
+    start_alarm()
+else:
+    stop_alarm()</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="report">
+      <div class="container">
+        <div class="section-head">
+          <h2>9. Dàn ý báo cáo gợi ý</h2>
+          <p>Dùng phần này để viết báo cáo hoặc chuẩn bị thuyết trình.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Cấu trúc chương</h3>
+            <ul>
+              <li><strong>Chương 1:</strong> Giới thiệu đề tài, lý do chọn đề tài, mục tiêu.</li>
+              <li><strong>Chương 2:</strong> Cơ sở lý thuyết: OpenCV, MediaPipe, EAR, CNN, Teachable Machine.</li>
+              <li><strong>Chương 3:</strong> Dataset và quá trình train model.</li>
+              <li><strong>Chương 4:</strong> Thiết kế hệ thống và pipeline xử lý.</li>
+              <li><strong>Chương 5:</strong> Kết quả thực nghiệm, đánh giá, hạn chế, hướng phát triển.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Nên nhấn mạnh khi thuyết trình</h3>
+            <ul>
+              <li>Hệ thống không chỉ dùng model AI, mà kết hợp thêm EAR để ổn định hơn.</li>
+              <li>Có ba tiêu chí cảnh báo: nhắm lâu, chớp nhiều, score tích lũy.</li>
+              <li>Score không reset ngay khi mở mắt, giúp phát hiện trạng thái lim dim.</li>
+              <li>Đã có debug crop mắt để kiểm tra model đang nhìn đúng vùng ảnh.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quiz" style="background:#eef2ff">
+      <div class="container">
+        <div class="section-head">
+          <h2>10. Quiz ôn tập nhanh</h2>
+          <p>Bấm đáp án để tự kiểm tra kiến thức trước khi báo cáo.</p>
+        </div>
+
+        <div class="quiz-card">
+          <h3>Câu 1: EAR dùng để làm gì?</h3>
+          <button class="option" data-correct="false">Để train model CNN</button>
+          <button class="option" data-correct="true">Để đo độ mở của mắt bằng landmark</button>
+          <button class="option" data-correct="false">Để phát âm thanh cảnh báo</button>
+        </div>
+
+        <div class="quiz-card">
+          <h3>Câu 2: Vì sao không reset score về 0 ngay khi mở mắt?</h3>
+          <button class="option" data-correct="true">Vì người buồn ngủ có thể lim dim nhiều lần liên tiếp</button>
+          <button class="option" data-correct="false">Vì TensorFlow yêu cầu như vậy</button>
+          <button class="option" data-correct="false">Vì MediaPipe không detect được mắt mở</button>
+        </div>
+
+        <div class="quiz-card">
+          <h3>Câu 3: Điều kiện nào dễ gây alarm nhất khi mắt nhắm quá lâu?</h3>
+          <button class="option" data-correct="false">model_conf thấp</button>
+          <button class="option" data-correct="true">continuous_closed_time ≥ 2 giây</button>
+          <button class="option" data-correct="false">blink_count = 0</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="checklist">
+      <div class="container">
+        <div class="section-head">
+          <h2>11. Checklist trước khi nộp/demo</h2>
+          <p>Tích vào các mục đã hoàn thành.</p>
+        </div>
+
+        <ul class="checklist">
+          <li><input type="checkbox" /> <span>Webcam chạy ổn, không giật quá nhiều.</span></li>
+          <li><input type="checkbox" /> <span>MediaPipe detect mắt đúng, landmark bám quanh mắt.</span></li>
+          <li><input type="checkbox" /> <span>EAR mở/nhắm có khoảng cách rõ ràng.</span></li>
+          <li><input type="checkbox" /> <span>Model Teachable Machine load được trong Python.</span></li>
+          <li><input type="checkbox" /> <span>Crop mắt trái/phải hiển thị đúng vùng mắt.</span></li>
+          <li><input type="checkbox" /> <span>Alarm hoạt động khi nhắm mắt lâu.</span></li>
+          <li><input type="checkbox" /> <span>Blink rate hoạt động khi chớp nhiều trong 10 giây.</span></li>
+          <li><input type="checkbox" /> <span>Báo cáo có ảnh dataset, ảnh training, ảnh demo realtime.</span></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      Project ôn tập: Driver Drowsiness Detection bằng Python, OpenCV, MediaPipe, EAR và Teachable Machine.
+    </div>
+  </footer>
+
+  <script>
+    const accordionButtons = document.querySelectorAll('.accordion-button');
+    accordionButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const item = button.parentElement;
+        item.classList.toggle('active');
+      });
+    });
+
+    function openTab(event, tabId) {
+      const panels = document.querySelectorAll('.tab-panel');
+      const buttons = document.querySelectorAll('.tab-btn');
+
+      panels.forEach(panel => panel.classList.remove('active'));
+      buttons.forEach(button => button.classList.remove('active'));
+
+      document.getElementById(tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    const quizOptions = document.querySelectorAll('.option');
+    quizOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        const parent = option.closest('.quiz-card');
+        const options = parent.querySelectorAll('.option');
+        options.forEach(btn => btn.classList.remove('correct', 'wrong'));
+
+        if (option.dataset.correct === 'true') {
+          option.classList.add('correct');
+        } else {
+          option.classList.add('wrong');
+        }
+      });
+    });
+
+    let simClosed = false;
+    let simClosedTime = 0;
+    let simScore = 0;
+    let blinkTimes = [];
+    let lastUpdate = Date.now();
+    const BLINK_WINDOW = 10;
+    const BLINK_THRESHOLD = 10;
+    const CLOSED_THRESHOLD = 2.0;
+    const SCORE_THRESHOLD = 2.5;
+
+    function setEyeClosed(value) {
+      const wasClosed = simClosed;
+      simClosed = value;
+
+      if (wasClosed && !simClosed) {
+        blinkTimes.push(Date.now() / 1000);
+      }
+
+      updateSim();
+    }
+
+    function simulateBlink() {
+      blinkTimes.push(Date.now() / 1000);
+      updateSim();
+    }
+
+    function resetSim() {
+      simClosed = false;
+      simClosedTime = 0;
+      simScore = 0;
+      blinkTimes = [];
+      lastUpdate = Date.now();
+      renderSim('Trạng thái an toàn', false);
+    }
+
+    function updateSim() {
+      const now = Date.now();
+      const dt = (now - lastUpdate) / 1000;
+      lastUpdate = now;
+
+      if (simClosed) {
+        simClosedTime += dt;
+        simScore += dt * 1.0;
+      } else {
+        simClosedTime = 0;
+        simScore -= dt * 0.5;
+      }
+
+      simScore = Math.max(0, simScore);
+
+      const nowSec = now / 1000;
+      blinkTimes = blinkTimes.filter(t => nowSec - t <= BLINK_WINDOW);
+      const blinkRate = blinkTimes.length;
+
+      const longClosedAlert = simClosedTime >= CLOSED_THRESHOLD;
+      const blinkRateAlert = blinkRate >= BLINK_THRESHOLD;
+      const scoreAlert = simClosed && simScore >= SCORE_THRESHOLD;
+
+      let msg = 'Trạng thái an toàn';
+      let danger = false;
+
+      if (longClosedAlert) {
+        msg = 'DROWSINESS ALERT: Nhắm mắt quá lâu!';
+        danger = true;
+      } else if (blinkRateAlert) {
+        msg = 'DROWSINESS ALERT: Chớp mắt quá nhiều trong 10 giây!';
+        danger = true;
+      } else if (scoreAlert) {
+        msg = 'DROWSINESS ALERT: Điểm buồn ngủ cao và mắt đang nhắm!';
+        danger = true;
+      }
+
+      renderSim(msg, danger);
+    }
+
+    function renderSim(message, danger) {
+      const nowSec = Date.now() / 1000;
+      blinkTimes = blinkTimes.filter(t => nowSec - t <= BLINK_WINDOW);
+
+      document.getElementById('simEye').textContent = simClosed ? 'CLOSED' : 'OPEN';
+      document.getElementById('simClosed').textContent = simClosedTime.toFixed(1) + 's';
+      document.getElementById('simScore').textContent = simScore.toFixed(1);
+      document.getElementById('simBlink').textContent = blinkTimes.length + '/10s';
+
+      const alertBox = document.getElementById('simAlert');
+      alertBox.textContent = message;
+      alertBox.classList.toggle('danger', danger);
+    }
+
+    setInterval(updateSim, 120);
+  </script>
+</body>
+</html>
