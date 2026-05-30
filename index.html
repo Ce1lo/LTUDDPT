@@ -82,6 +82,14 @@
     .explain-list { display: grid; gap: 8px; }
     .explain-item { display: grid; grid-template-columns: 84px minmax(0,1fr); gap: 10px; align-items: start; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel-2) 72%, transparent); border-radius: var(--radius); padding: 9px; }
     .explain-item mark { background: rgba(255, 209, 102, .25); color: inherit; padding: 0 2px; border-radius: 2px; }
+    .overview { display: grid; gap: 12px; }
+    .overview-card { border: 1px solid var(--line); border-radius: var(--radius); background: color-mix(in srgb, var(--panel-2) 76%, transparent); padding: 12px; }
+    .overview-card h3 { margin: 0 0 8px; font-size: 14px; color: var(--accent); }
+    .overview-card p { margin: 0; color: var(--text); font-size: 14px; }
+    .overview-card ul, .overview-card ol { margin: 0; padding-left: 18px; color: var(--text); font-size: 13px; }
+    .overview-card li + li { margin-top: 6px; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { border: 1px solid var(--line); border-radius: 999px; background: var(--code-bg); padding: 4px 8px; font-size: 12px; color: var(--muted); }
     .line-link { font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace; font-size: 12px; text-align: center; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--code-bg); color: var(--accent); }
     .desc { font-size: 14px; color: var(--text); }
     .concepts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; padding: 18px; }
@@ -3935,6 +3943,226 @@
 
     const fileByPath = new Map(files.map(file => [file.path, file]));
     const keywords = /\b(False|None|True|and|as|break|class|continue|def|elif|else|for|from|global|if|import|in|is|not|or|pass|return|while|with)\b/g;
+    const fileOverviews = {
+      'src/main.py': {
+        role: 'File điều phối toàn bộ chương trình: mở webcam, đọc từng frame, gọi MediaPipe để lấy landmark, gọi model AI, cập nhật các detector và quyết định trạng thái cảnh báo.',
+        flow: [
+          'Khởi tạo `EyeClassifier`, webcam và các detector.',
+          'Mỗi frame: đọc ảnh, lật ảnh, đổi BGR sang RGB rồi đưa vào Face Mesh.',
+          'Nếu có mặt: lấy landmark mắt, tính EAR, làm mượt EAR, cắt ảnh mắt và gọi CNN.',
+          'Nếu đang calibration: chỉ thu EAR và reset detector để tránh báo sai.',
+          'Nếu đã calibration: cập nhật blink, closure, PERCLOS rồi chọn trạng thái `OPEN`, `CLOSED`, `DROWSY`, `DISTRACTED` hoặc `NO FACE`.',
+          'Vẽ thông tin lên frame, hiển thị preview mắt, xử lý phím tắt và dọn tài nguyên khi thoát.'
+        ],
+        functions: [
+          '`get_eye_coordinates(frame, landmarks, eye_indices)`: đổi landmark tương đối thành tọa độ pixel.',
+          '`draw_eye_landmarks(frame, eye_coords)`: vẽ các điểm mắt lên frame.',
+          '`show_eye_preview(window_name, eye_crop, scale)`: hiển thị ảnh crop vùng mắt.',
+          '`crop_eye_region(frame, landmarks, eye_indices, padding=25)`: cắt vùng ảnh quanh mắt.',
+          '`predict_eye_state(classifier, frame, landmarks)`: dự đoán Open/Closed/Unknown bằng CNN cho hai mắt.',
+          '`main()`: vòng lặp runtime chính.'
+        ],
+        params: [
+          '`frame`: ảnh hiện tại từ webcam.',
+          '`landmarks`: danh sách điểm Face Mesh của khuôn mặt.',
+          '`eye_indices`: 6 chỉ số landmark của một mắt.',
+          '`padding`: số pixel mở rộng quanh vùng mắt khi crop.',
+          '`current_time`: timestamp dùng cho mọi detector.',
+          '`ear_threshold`: ngưỡng EAR đang dùng sau calibration hoặc mặc định.'
+        ],
+        links: [
+          ['main()', 'src-main-py-L138'],
+          ['predict_eye_state()', 'src-main-py-L101'],
+          ['crop_eye_region()', 'src-main-py-L87'],
+          ['vòng lặp frame', 'src-main-py-L190']
+        ]
+      },
+      'src/config.py': {
+        role: 'Nơi gom các tham số runtime và ngưỡng cảnh báo để dễ chỉnh mà không phải sửa logic trong `main.py`.',
+        flow: [
+          '`main.py` import toàn bộ hằng số cần dùng.',
+          'Detector nhận các giá trị này qua constructor.',
+          'Khi muốn chỉnh độ nhạy hệ thống, ưu tiên chỉnh file này.'
+        ],
+        functions: [],
+        params: [
+          '`DEFAULT_EAR_THRESHOLD`: ngưỡng EAR mặc định.',
+          '`DROWSY_CLOSED_DURATION`: số giây nhắm mắt liên tục để cảnh báo.',
+          '`PERCLOS_WINDOW`, `PERCLOS_THRESHOLD`: cửa sổ và ngưỡng PERCLOS.',
+          '`CNN_CLOSED_CONFIDENCE_THRESHOLD`: confidence tối thiểu để tin CNN báo nhắm.',
+          '`BLINK_*`: cấu hình đếm blink.',
+          '`CALIBRATION_*`, `FACE_LOSS_THRESHOLD`: cấu hình hiệu chuẩn và mất mặt.'
+        ],
+        links: [['ngưỡng EAR', 'src-config-py-L3'], ['blink config', 'src-config-py-L13'], ['calibration', 'src-config-py-L21']]
+      },
+      'src/eye_metrics.py': {
+        role: 'Tính chỉ số hình học của mắt, đặc biệt là EAR, từ 6 điểm landmark.',
+        flow: [
+          '`calculate_ear` nhận 6 điểm mắt.',
+          'Tính hai khoảng cách dọc mí mắt và một khoảng cách ngang giữa hai khóe mắt.',
+          'Trả về EAR; mắt nhắm thì EAR giảm.'
+        ],
+        functions: [
+          '`calculate_distance(p1, p2)`: khoảng cách Euclid giữa hai tọa độ.',
+          '`calculate_ear(eye_points)`: công thức EAR từ 6 điểm.'
+        ],
+        params: [
+          '`p1`, `p2`: tuple tọa độ pixel `(x, y)`.',
+          '`eye_points`: danh sách 6 điểm theo thứ tự landmark đã chọn.',
+          '`horizontal`: mẫu số; nếu bằng 0 thì trả `0.0` để tránh chia cho 0.'
+        ],
+        links: [['calculate_ear()', 'src-eye-metrics-py-L10'], ['công thức EAR', 'src-eye-metrics-py-L22']]
+      },
+      'src/eye_classifier.py': {
+        role: 'Adapter cho model Keras: tải model/labels và chuẩn hóa ảnh mắt trước khi dự đoán.',
+        flow: [
+          'Constructor tìm thư mục gốc project, mở `models/keras_model.h5` và `models/labels.txt`.',
+          '`predict` resize ảnh mắt về 224x224, đổi BGR sang RGB.',
+          'Chuẩn hóa pixel về `[-1, 1]`, thêm batch dimension rồi gọi model.',
+          'Trả label có xác suất cao nhất và confidence tương ứng.'
+        ],
+        functions: [
+          '`EyeClassifier.__init__()`: tải model và labels.',
+          '`EyeClassifier.predict(eye_crop)`: dự đoán một ảnh vùng mắt.'
+        ],
+        params: [
+          '`eye_crop`: ảnh vùng mắt đã cắt từ frame.',
+          '`model_path`, `labels_path`: đường dẫn tới model và labels.',
+          '`batch`: tensor đầu vào model dạng một ảnh.'
+        ],
+        links: [['EyeClassifier', 'src-eye-classifier-py-L7'], ['predict()', 'src-eye-classifier-py-L22']]
+      },
+      'src/detectors/ear_calibration.py': {
+        role: 'Cá nhân hóa ngưỡng EAR cho người đang dùng trong vài giây đầu.',
+        flow: [
+          'Khi chưa có `calibrated_threshold`, detector thu EAR vào `ear_history`.',
+          'Hết `duration`, lấy EAR trung bình nhân `ratio`.',
+          'Kẹp ngưỡng trong khoảng an toàn `[0.12, 0.28]`.',
+          'Sau khi xong, `get_threshold` trả ngưỡng đã hiệu chuẩn.'
+        ],
+        functions: [
+          '`update(ear, current_time)`: thu mẫu và tính ngưỡng.',
+          '`is_complete()`: kiểm tra đã hiệu chuẩn xong chưa.',
+          '`get_threshold()`: trả ngưỡng hiện tại.',
+          '`get_progress(current_time)`: phần trăm tiến độ.',
+          '`reset()`: bắt đầu hiệu chuẩn lại.'
+        ],
+        params: [
+          '`duration`: thời gian thu mẫu.',
+          '`default_threshold`: ngưỡng fallback.',
+          '`ratio`: tỷ lệ nhân với EAR trung bình.',
+          '`ear_history`: danh sách mẫu EAR.'
+        ],
+        links: [['EARCalibrator', 'src-detectors-ear-calibration-py-L2'], ['update()', 'src-detectors-ear-calibration-py-L14']]
+      },
+      'src/detectors/blink.py': {
+        role: 'Lọc nhiễu trạng thái mở/nhắm và đếm blink hợp lệ trong cửa sổ thời gian.',
+        flow: [
+          '`update` nhận trạng thái nhắm tức thời từ EAR/CNN.',
+          'Debounce yêu cầu trạng thái mới lặp lại đủ frame mới xác nhận.',
+          'Khi chuyển từ nhắm sang mở, tính thời lượng nhắm để xác định có phải blink không.',
+          'Blink hợp lệ được lưu timestamp vào `blink_timestamps`.',
+          'Nếu số blink trong cửa sổ đạt ngưỡng thì bật cảnh báo blink rate.'
+        ],
+        functions: [
+          '`update(is_closed_instant, current_time)`: logic chính.',
+          '`get_blink_rate(current_time)`: số blink trong cửa sổ gần nhất.',
+          '`is_closed()`: trạng thái mắt đã debounce.',
+          '`reset_temp_state()`: reset trạng thái tạm khi mất mặt.',
+          '`reset()`: reset toàn bộ.'
+        ],
+        params: [
+          '`window_seconds`: cửa sổ đếm blink.',
+          '`blink_threshold`: số blink để cảnh báo.',
+          '`debounce_frames`: số frame xác nhận đổi trạng thái.',
+          '`min_blink_duration`, `max_blink_duration`: khoảng thời lượng blink hợp lệ.',
+          '`refractory_seconds`: tránh đếm trùng một blink.'
+        ],
+        links: [['BlinkDetector', 'src-detectors-blink-py-L5'], ['update()', 'src-detectors-blink-py-L33']]
+      },
+      'src/detectors/eye_closure.py': {
+        role: 'Theo dõi nhắm mắt liên tục để bắt trường hợp ngủ gật tức thời.',
+        flow: [
+          'Nếu `is_closed` là true, ghi thời điểm bắt đầu nhắm nếu chưa có.',
+          'Tính `closed_duration` bằng thời gian hiện tại trừ thời điểm bắt đầu.',
+          'Nếu mắt mở lại, reset thời lượng về 0.',
+          '`has_alert` true khi thời lượng nhắm vượt ngưỡng.'
+        ],
+        functions: [
+          '`update(is_closed, current_time)`: cập nhật thời gian nhắm.',
+          '`get_closed_duration()`: lấy số giây đang nhắm.',
+          '`has_alert()`: kiểm tra vượt ngưỡng.',
+          '`reset()`: xóa trạng thái.'
+        ],
+        params: [
+          '`threshold`: số giây nhắm liên tục để cảnh báo.',
+          '`closed_start_time`: timestamp bắt đầu nhắm.',
+          '`closed_duration`: thời lượng nhắm hiện tại.'
+        ],
+        links: [['ContinuousClosureDetector', 'src-detectors-eye-closure-py-L2'], ['update()', 'src-detectors-eye-closure-py-L10']]
+      },
+      'src/detectors/perclos.py': {
+        role: 'Tính tỷ lệ thời gian mắt nhắm trong cửa sổ trượt để đo mệt mỏi tích lũy.',
+        flow: [
+          '`update` lưu mẫu `(current_time, is_closed)`.',
+          'Mẫu cũ ngoài `window_seconds` bị xóa.',
+          '`get_perclos` cộng thời gian giữa các mẫu; nếu mẫu trước là closed thì cộng vào closed_time.',
+          '`has_alert` chỉ xét khi đã quan sát đủ `min_observation_seconds`.'
+        ],
+        functions: [
+          '`update(is_closed, current_time)`: thêm mẫu mới.',
+          '`get_perclos()`: tỷ lệ closed_time / total_time.',
+          '`has_alert()`: kiểm tra vượt ngưỡng.',
+          '`get_observation_duration()`: thời gian quan sát hiện tại.',
+          '`reset()`: xóa mẫu.'
+        ],
+        params: [
+          '`window_seconds`: độ dài cửa sổ trượt.',
+          '`threshold`: ngưỡng PERCLOS.',
+          '`min_observation_seconds`: thời gian tối thiểu trước khi cảnh báo.',
+          '`samples`: hàng đợi các mẫu trạng thái mắt.'
+        ],
+        links: [['PerclosDetector', 'src-detectors-perclos-py-L5'], ['get_perclos()', 'src-detectors-perclos-py-L19']]
+      },
+      'src/detectors/distraction.py': {
+        role: 'Phát hiện mất tập trung theo nghĩa khuôn mặt rời khỏi khung hình quá lâu.',
+        flow: [
+          'Nếu còn phát hiện mặt, reset `lost_time` và tắt distracted.',
+          'Nếu mất mặt, ghi timestamp lần đầu mất mặt.',
+          'Nếu thời gian mất mặt vượt `threshold`, bật `is_distracted`.'
+        ],
+        functions: [
+          '`update(face_detected, current_time)`: cập nhật trạng thái có/mất mặt.',
+          '`has_alert()`: trả trạng thái distracted.',
+          '`get_lost_duration(current_time)`: số giây mất mặt.'
+        ],
+        params: [
+          '`threshold`: số giây mất mặt để cảnh báo.',
+          '`lost_time`: thời điểm bắt đầu mất mặt.',
+          '`is_distracted`: cờ cảnh báo.'
+        ],
+        links: [['DistractionDetector', 'src-detectors-distraction-py-L4'], ['update()', 'src-detectors-distraction-py-L12']]
+      },
+      'src/alarm_controller.py': {
+        role: 'Quản lý âm thanh cảnh báo bằng pygame, tránh phát nhiều lần chồng lên nhau.',
+        flow: [
+          'Khởi tạo mixer pygame.',
+          'Tạo đường dẫn tới `assets/haruharu.mp3` và load thành `alarm_sound`.',
+          '`play_alarm` chỉ phát nếu chưa phát.',
+          '`stop_alarm` chỉ dừng nếu đang phát.'
+        ],
+        functions: [
+          '`play_alarm()`: phát âm thanh lặp vô hạn.',
+          '`stop_alarm()`: dừng âm thanh.'
+        ],
+        params: [
+          '`alarm_path`: đường dẫn file âm thanh.',
+          '`alarm_sound`: object âm thanh pygame.',
+          '`is_playing`: cờ chống gọi play/stop dư.'
+        ],
+        links: [['play_alarm()', 'src-alarm-controller-py-L14'], ['stop_alarm()', 'src-alarm-controller-py-L21']]
+      }
+    };
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[char]));
@@ -4020,6 +4248,30 @@
       return html;
     }
 
+    function renderOverviewList(items, ordered) {
+      if (!items || !items.length) return '<p>Không có mục riêng.</p>';
+      const tag = ordered ? 'ol' : 'ul';
+      return '<' + tag + '>' + items.map(item => '<li>' + mdInline(item) + '</li>').join('') + '</' + tag + '>';
+    }
+
+    function renderOverview(file) {
+      const overview = fileOverviews[file.path] || {};
+      const links = overview.links || [];
+      const searchText = [
+        overview.role || '',
+        ...(overview.flow || []),
+        ...(overview.functions || []),
+        ...(overview.params || [])
+      ].join(' ').toLowerCase();
+      return '<div class="overview" data-text="' + escapeAttr(searchText) + '">' +
+        '<div class="overview-card"><h3>Vai trò file</h3><p>' + mdInline(overview.role || 'Chưa có mô tả tổng quát cho file này.') + '</p></div>' +
+        '<div class="overview-card"><h3>Flow xử lý</h3>' + renderOverviewList(overview.flow, true) + '</div>' +
+        '<div class="overview-card"><h3>Hàm / class chính</h3>' + renderOverviewList(overview.functions, false) + '</div>' +
+        '<div class="overview-card"><h3>Biến và tham số cần nhớ</h3>' + renderOverviewList(overview.params, false) + '</div>' +
+        '<div class="overview-card"><h3>Link nhanh trong code</h3><div class="tag-list">' + links.map(link => '<a class="tag" href="#' + link[1] + '">' + escapeHtml(link[0]) + '</a>').join('') + '</div></div>' +
+      '</div>';
+    }
+
     function lineId(file, lineNumber) {
       return file.slug + '-L' + lineNumber;
     }
@@ -4094,16 +4346,11 @@
         return '<div class="code-line' + (hasNote ? ' has-note' : '') + '" id="' + id + '" data-file="' + file.slug + '" data-line="' + lineNumber + '" data-text="' + escapeAttr(line.toLowerCase()) + '" tabindex="0"><a class="ln" href="#' + id + '" title="Copy link dòng ' + lineNumber + '">' + String(lineNumber).padStart(3, ' ') + '</a><span class="src">' + highlightPython(line) + '</span></div>';
       }).join('');
 
-      const explain = file.explanations.length
-        ? file.explanations.map(item => {
-            const targetLine = nearestNoteLine(file, item);
-            return '<div class="explain-item" data-line="' + targetLine + '" data-text="' + escapeAttr((item.label + ' ' + item.text).toLowerCase()) + '"><a class="line-link" href="#' + lineId(file, targetLine) + '">' + item.label + '</a><div class="desc">' + mdInline(item.text) + '</div></div>';
-          }).join('')
-        : '<div class="empty">File này chưa có bảng giải thích chi tiết trong Markdown nguồn.</div>';
+      const explain = renderOverview(file);
 
       return '<section id="' + file.slug + '" data-file="' + file.path + '">' +
         '<div class="section-head"><h2>' + file.path + '</h2><div class="section-tools"><span class="pill">' + file.lines.length + ' dòng</span><a class="pill" href="#top">mục lục</a></div><div class="mobile-jumps"><a href="#' + file.slug + '-code">Code</a><a href="#' + file.slug + '-explain">Giải thích</a></div></div>' +
-        '<div class="split"><div id="' + file.slug + '-code" class="code-pane"><pre><code>' + code + '</code></pre></div><div id="' + file.slug + '-explain" class="explain-pane"><div class="explain-list">' + explain + '</div></div></div>' +
+        '<div class="split"><div id="' + file.slug + '-code" class="code-pane"><pre><code>' + code + '</code></pre></div><div id="' + file.slug + '-explain" class="explain-pane">' + explain + '</div></div>' +
       '</section>';
     }
 
@@ -4123,7 +4370,7 @@
 
     function applySearch() {
       const q = search.value.trim().toLowerCase();
-      document.querySelectorAll('.code-line, .explain-item').forEach(el => {
+      document.querySelectorAll('.code-line, .overview').forEach(el => {
         const text = el.dataset.text || '';
         el.style.display = (!q || text.includes(q)) ? '' : 'none';
       });
