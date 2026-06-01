@@ -239,6 +239,58 @@
       .explain-item { grid-template-columns: 1fr; }
       .line-link { justify-content: flex-start; width: fit-content; min-width: 64px; }
     }
+    .doc-content {
+      padding: 24px;
+      font-size: 15px;
+      color: var(--text);
+    }
+    .doc-content h3 {
+      font-size: 18px;
+      color: var(--accent);
+      margin-top: 24px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 6px;
+    }
+    .doc-content h4 {
+      font-size: 15px;
+      color: var(--accent-2);
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .doc-content p {
+      margin-top: 0;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    .doc-content ul {
+      margin-top: 0;
+      margin-bottom: 16px;
+      padding-left: 20px;
+    }
+    .doc-content li {
+      margin-bottom: 6px;
+    }
+    .doc-content pre {
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      overflow-x: auto;
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+    .doc-content code {
+      font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+      font-size: 13px;
+    }
+    .doc-content p code {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -278,6 +330,514 @@
           <div class="concept"><h3>CNN</h3><p>Model Keras phân loại ảnh vùng mắt thành mở/nhắm, bổ sung cho tín hiệu EAR.</p></div>
           <div class="concept"><h3>Debounce</h3><p>Yêu cầu trạng thái ổn định nhiều frame trước khi xác nhận để giảm nhiễu.</p></div>
           <div class="concept"><h3>PERCLOS</h3><p>Tỷ lệ thời gian mắt nhắm trong một cửa sổ thời gian, dùng để đo mệt mỏi tích lũy.</p></div>
+        </div>
+      </section>
+
+      <section id="giai-thich-main">
+        <div class="section-head">
+          <h2>Giải thích chi tiết main.py</h2>
+          <div class="section-tools">
+            <span class="pill">Tài liệu tham khảo</span>
+            <a class="pill" href="#top">mục lục</a>
+          </div>
+        </div>
+        <div class="doc-content">
+          <p>Chào bạn! Dưới đây là lời giải thích chi tiết, cặn kẽ từng dòng lệnh và luồng hoạt động trong file <code>src/main.py</code>, cũng như các phương thức từ các lớp được import.</p>
+
+          <h3>PHẦN 1: IMPORT THƯ VIỆN VÀ CÁC CLASS CẦN THIẾT (Dòng 1 - 34)</h3>
+          <pre><code><span class="kw">import</span> time
+<span class="kw">import</span> sys
+<span class="kw">import</span> cv2
+<span class="kw">import</span> mediapipe <span class="kw">as</span> mp</code></pre>
+          <ul>
+            <li><code>time</code>: Thư viện chuẩn của Python dùng để lấy thời gian thực của hệ thống (phục vụ việc tính toán khoảng thời gian nhắm mắt, tần suất chớp mắt...).</li>
+            <li><code>sys</code>: Dùng để cấu hình hệ thống (ở đây cụ thể là cấu hình encode đầu ra của console).</li>
+            <li><code>cv2</code> (OpenCV): Thư viện xử lý ảnh chính. Dùng để đọc dữ liệu từ camera, vẽ điểm mốc lên mặt, cắt ảnh mắt, hiển thị giao diện camera, vẽ văn bản cảnh báo và bắt sự kiện bàn phím.</li>
+            <li><code>mediapipe as mp</code>: Thư viện của Google chuyên dụng cho các tác vụ thị giác máy tính. Ở đây ta sử dụng giải pháp <strong>Face Mesh</strong> để tìm 468 (hoặc 478) điểm mốc (landmarks) trên khuôn mặt trong thời gian thực.</li>
+          </ul>
+
+          <pre><code><span class="kw">from</span> config <span class="kw">import</span> (
+    DEFAULT_EAR_THRESHOLD,
+    DROWSY_CLOSED_DURATION,
+    ...
+)</code></pre>
+          <ul>
+            <li>Import tất cả các thông số cấu hình, ngưỡng đo từ file <code>config.py</code> như: ngưỡng EAR mặc định, thời gian nhắm mắt cảnh báo, cửa sổ thời gian trượt, biên an toàn chớp mắt, thời gian hiệu chuẩn...</li>
+          </ul>
+
+          <pre><code><span class="kw">from</span> alarm_controller <span class="kw">import</span> play_alarm, stop_alarm
+<span class="kw">from</span> eye_classifier <span class="kw">import</span> <span class="cls">EyeClassifier</span>
+<span class="kw">from</span> eye_metrics <span class="kw">import</span> calculate_ear</code></pre>
+          <ul>
+            <li><code>play_alarm</code>, <code>stop_alarm</code>: Hàm từ <code>alarm_controller.py</code>.
+              <ul>
+                <li><code>play_alarm()</code>: Khởi động phát còi báo động lặp vô hạn bằng thư viện <code>pygame.mixer</code> (chạy file nhạc <code>haruharu.mp3</code> trong thư mục <code>assets</code>).</li>
+                <li><code>stop_alarm()</code>: Dừng phát còi báo động.</li>
+              </ul>
+            </li>
+            <li><code>EyeClassifier</code>: Class từ <code>eye_classifier.py</code>. Class này dùng mô hình học sâu CNN (Keras) để phân loại xem ảnh vùng mắt đang nhắm hay mở.</li>
+            <li><code>calculate_ear</code>: Hàm từ <code>eye_metrics.py</code>. Dùng để tính toán tỷ lệ EAR (Eye Aspect Ratio) dựa trên tọa độ hình học của 6 điểm mốc quanh mắt.</li>
+          </ul>
+
+          <pre><code><span class="kw">from</span> detectors.ear_calibration <span class="kw">import</span> <span class="cls">EARCalibrator</span>
+<span class="kw">from</span> detectors.distraction <span class="kw">import</span> <span class="cls">DistractionDetector</span>
+<span class="kw">from</span> detectors.blink <span class="kw">import</span> <span class="cls">BlinkDetector</span>
+<span class="kw">from</span> detectors.eye_closure <span class="kw">import</span> <span class="cls">ContinuousClosureDetector</span>
+<span class="kw">from</span> detectors.perclos <span class="kw">import</span> <span class="cls">PerclosDetector</span></code></pre>
+          <ul>
+            <li>Import các bộ phát hiện (Detectors) quản lý logic cảnh báo:
+              <ul>
+                <li><code>EARCalibrator</code>: Bộ tự động hiệu chuẩn ngưỡng EAR động cá nhân hóa cho từng tài xế.</li>
+                <li><code>DistractionDetector</code>: Bộ phát hiện mất tập trung dựa trên việc mất dấu khuôn mặt.</li>
+                <li><code>BlinkDetector</code>: Bộ đếm tần suất chớp mắt và phát hiện chớp mắt quá nhanh/chậm.</li>
+                <li><code>ContinuousClosureDetector</code>: Bộ đo thời gian nhắm mắt liên tục (ngủ gật sâu).</li>
+                <li><code>PerclosDetector</code>: Bộ tính toán tỷ lệ phần trăm thời gian nhắm mắt trong một khoảng thời gian (PERCLOS).</li>
+              </ul>
+            </li>
+          </ul>
+
+          <h3>PHẦN 2: CÁC BIẾN TOÀN CỤC VÀ HẰNG SỐ (Dòng 36 - 45)</h3>
+          <pre><code>mp_face_mesh = mp.solutions.face_mesh
+
+LEFT_EYE_INDICES = [<span class="num">33</span>, <span class="num">160</span>, <span class="num">158</span>, <span class="num">133</span>, <span class="num">153</span>, <span class="num">144</span>]
+RIGHT_EYE_INDICES = [<span class="num">362</span>, <span class="num">385</span>, <span class="num">387</span>, <span class="num">263</span>, <span class="num">373</span>, <span class="num">380</span>]</code></pre>
+          <ul>
+            <li><code>mp_face_mesh</code>: Trỏ tới module Face Mesh của MediaPipe.</li>
+            <li><code>LEFT_EYE_INDICES</code> &amp; <code>RIGHT_EYE_INDICES</code>: Mảng chứa chỉ số của 6 điểm mốc cấu tạo nên mắt trái và mắt phải trong mô hình Face Mesh của MediaPipe. Công thức EAR yêu cầu đúng 6 điểm này (2 điểm khóe mắt trái/phải để tính chiều rộng, và 4 điểm mi mắt trên/dưới để tính chiều cao của mắt).</li>
+          </ul>
+
+          <pre><code>LEFT_EYE_WINDOW = <span class="str">"Left Eye"</span>
+RIGHT_EYE_WINDOW = <span class="str">"Right Eye"</span>
+EYE_PREVIEW_MIN_SCALE = <span class="num">1.0</span>
+EYE_PREVIEW_MAX_SCALE = <span class="num">5.0</span>
+EYE_PREVIEW_SCALE_STEP = <span class="num">0.5</span></code></pre>
+          <ul>
+            <li>Các hằng số cấu hình cho cửa sổ hiển thị ảnh cắt vùng mắt (tên cửa sổ OpenCV và dải tỉ lệ phóng to ảnh mắt từ 1.0 đến 5.0 lần).</li>
+          </ul>
+
+          <h3>PHẦN 3: GIẢI THÍCH CÁC HÀM BỔ TRỢ (HELPER FUNCTIONS) (Dòng 48 - 135)</h3>
+
+          <h4>1. Hàm <code>get_eye_coordinates(frame, landmarks, eye_indices)</code></h4>
+          <pre><code><span class="kw">def</span> <span class="fn">get_eye_coordinates</span>(frame, landmarks, eye_indices):
+    h, w, _ = frame.shape
+    coords = []
+    <span class="kw">for</span> idx <span class="kw">in</span> eye_indices:
+        pt = landmarks[idx]
+        coords.append((int(pt.x * w), int(pt.y * h)))
+    <span class="kw">return</span> coords</code></pre>
+          <ul>
+            <li><strong>Tham số</strong>: <code>frame</code> (khung hình camera hiện tại), <code>landmarks</code> (các điểm mốc MediaPipe phát hiện được trên mặt với tọa độ chuẩn hóa từ <code>0.0</code> đến <code>1.0</code>), <code>eye_indices</code> (danh sách chỉ số mắt trái hoặc phải).</li>
+            <li><strong>Chức năng</strong>: Lấy kích thước ảnh <code>(h, w)</code> để nhân với tọa độ chuẩn hóa tỉ lệ <code>pt.x</code> và <code>pt.y</code>, giúp đổi chúng thành tọa độ pixel thực tế dạng số nguyên <code>(x, y)</code> trên khung hình OpenCV. Trả về danh sách chứa 6 cặp tọa độ pixel của mắt.</li>
+          </ul>
+
+          <h4>2. Hàm <code>draw_eye_landmarks(frame, eye_coords)</code></h4>
+          <pre><code><span class="kw">def</span> <span class="fn">draw_eye_landmarks</span>(frame, eye_coords):
+    <span class="kw">for</span> x, y <span class="kw">in</span> eye_coords:
+        cv2.circle(frame, (x, y), <span class="num">2</span>, (<span class="num">0</span>, <span class="num">255</span>, <span class="num">0</span>), -<span class="num">1</span>)</code></pre>
+          <ul>
+            <li><strong>Tham số</strong>: <code>frame</code> (khung hình để vẽ), <code>eye_coords</code> (tọa độ pixel của mắt từ hàm trên).</li>
+            <li><strong>Chức năng</strong>: Chạy vòng lặp qua 6 điểm, dùng hàm <code>cv2.circle</code> vẽ các hình tròn nhỏ màu xanh lá cây <code>(0, 255, 0)</code> có bán kính là 2 pixel để hiển thị điểm mốc mắt lên màn hình.</li>
+          </ul>
+
+          <h4>3. Hàm <code>destroy_eye_preview_windows()</code></h4>
+          <pre><code><span class="kw">def</span> <span class="fn">destroy_eye_preview_windows</span>():
+    <span class="kw">for</span> window_name <span class="kw">in</span> (LEFT_EYE_WINDOW, RIGHT_EYE_WINDOW):
+        <span class="kw">try</span>:
+            cv2.destroyWindow(window_name)
+        <span class="kw">except</span> cv2.error:
+            <span class="kw">pass</span></code></pre>
+          <ul>
+            <li><strong>Chức năng</strong>: Tắt các cửa sổ preview mắt trái/phải nếu chúng đang mở, dùng khối <code>try-except</code> để bỏ qua lỗi nếu các cửa sổ này chưa được tạo ra.</li>
+          </ul>
+
+          <h4>4. Hàm <code>show_eye_preview(window_name, eye_crop, scale)</code></h4>
+          <pre><code><span class="kw">def</span> <span class="fn">show_eye_preview</span>(window_name, eye_crop, scale):
+    <span class="kw">if</span> eye_crop <span class="kw">is</span> <span class="kw">None</span> <span class="kw">or</span> eye_crop.size == <span class="num">0</span>:
+        <span class="kw">return</span>
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    <span class="kw">if</span> scale != <span class="num">1.0</span>:
+        eye_crop = cv2.resize(
+            eye_crop, <span class="kw">None</span>, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR
+        )
+    cv2.imshow(window_name, eye_crop)</code></pre>
+          <ul>
+            <li><strong>Tham số</strong>: Tên cửa sổ, ảnh cắt mắt (<code>eye_crop</code>), tỷ lệ phóng to (<code>scale</code>).</li>
+            <li><strong>Chức năng</strong>: Khởi tạo cửa sổ OpenCV hiển thị vùng mắt. Nếu tỉ lệ <code>scale</code> khác <code>1.0</code> thì tiến hành phóng to ảnh cắt mắt bằng hàm <code>cv2.resize</code> với nội suy song tuyến tính (<code>cv2.INTER_LINEAR</code>), giúp chúng ta dễ quan sát trạng thái nhắm/mở của mắt trên màn hình demo.</li>
+          </ul>
+
+          <h4>5. Hàm <code>crop_eye_region(frame, landmarks, eye_indices, padding=25)</code></h4>
+          <pre><code><span class="kw">def</span> <span class="fn">crop_eye_region</span>(frame, landmarks, eye_indices, padding=<span class="num">25</span>):
+    h, w, _ = frame.shape
+    xs = [int(landmarks[idx].x * w) for idx in eye_indices]
+    ys = [int(landmarks[idx].y * h) for idx in eye_indices]
+
+    x_min = max(min(xs) - padding, <span class="num">0</span>)
+    x_max = min(max(xs) + padding, w)
+    y_min = max(min(ys) - padding, <span class="num">0</span>)
+    y_max = min(max(ys) + padding, h)
+
+    <span class="kw">return</span> frame[y_min:y_max, x_min:x_max]</code></pre>
+          <ul>
+            <li><strong>Chức năng</strong>: Cắt (crop) vùng ảnh mắt từ khung hình camera để đưa vào mô hình phân loại AI. Hàm tính toán vùng bao quanh mắt từ tọa độ nhỏ nhất đến lớn nhất của 6 điểm mốc, mở rộng thêm một khoảng đệm <code>padding</code> (mặc định 25 pixel) để đảm bảo chụp được trọn vẹn cả mắt và mí mắt, sau đó cắt lát ma trận ảnh OpenCV: <code>frame[y_min:y_max, x_min:x_max]</code>.</li>
+          </ul>
+
+          <h4>6. Hàm <code>predict_eye_state(classifier, frame, landmarks)</code></h4>
+          <pre><code><span class="kw">def</span> <span class="fn">predict_eye_state</span>(classifier, frame, landmarks):
+    left_eye_crop = crop_eye_region(frame, landmarks, LEFT_EYE_INDICES)
+    right_eye_crop = crop_eye_region(frame, landmarks, RIGHT_EYE_INDICES)
+
+    <span class="kw">if</span> left_eye_crop.size == <span class="num">0</span> <span class="kw">or</span> right_eye_crop.size == <span class="num">0</span>:
+        <span class="kw">return</span> <span class="str">"Unknown"</span>, <span class="num">0.0</span>, left_eye_crop, right_eye_crop
+
+    label_l, conf_l = classifier.predict(left_eye_crop)
+    label_r, conf_r = classifier.predict(right_eye_crop)
+    ...</code></pre>
+          <ul>
+            <li><strong>Tham số</strong>: <code>classifier</code> (đối tượng <code>EyeClassifier</code>), <code>frame</code>, <code>landmarks</code>.</li>
+            <li><strong>Chức năng</strong>:
+              <ol>
+                <li>Cắt ảnh mắt trái và mắt phải bằng hàm <code>crop_eye_region</code>.</li>
+                <li>Gọi phương thức <code>predict</code> từ đối tượng <code>classifier</code> để nhận về nhãn và độ tin cậy tương ứng cho từng mắt.
+                  <ul>
+                    <li><strong>Giải thích phương thức <code>EyeClassifier.predict(eye_crop)</code> trong <code>eye_classifier.py</code></strong>:
+                      <ul>
+                        <li>Nhận vào ảnh cắt vùng mắt.</li>
+                        <li>Đổi kích thước ảnh về <code>224x224</code> pixel bằng <code>cv2.resize</code>.</li>
+                        <li>Chuyển đổi không gian màu từ BGR sang RGB bằng <code>cv2.cvtColor</code>.</li>
+                        <li>Chuẩn hóa giá trị các điểm ảnh (pixel) từ khoảng <code>[0, 255]</code> về khoảng số thực <code>[-1, 1]</code> bằng công thức: <code>(rgb_img.astype(np.float32) / 127.5) - 1.0</code> (đây là yêu cầu chuẩn hóa đầu vào của mô hình Teachable Machine/Keras).</li>
+                        <li>Thêm một chiều batch bằng <code>np.expand_dims(..., axis=0)</code> tạo thành mảng 4 chiều.</li>
+                        <li>Gọi <code>self.model.predict(batch, verbose=0)</code> để mô hình AI CNN phân tích và trả về phân phối xác suất.</li>
+                        <li>Dùng <code>np.argmax</code> tìm chỉ số của nhãn có xác suất cao nhất rồi trả về tên nhãn cùng giá trị độ tin cậy.</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+                <li>Đồng bộ hóa kết quả hai mắt:
+                  <ul>
+                    <li>Nếu cả hai mắt đều dự đoán là "closed" (nhắm), trả về kết quả <code>"Closed"</code> với độ tin cậy tối thiểu của hai bên.</li>
+                    <li>Nếu cả hai đều là "open" (mở), trả về <code>"Open"</code>.</li>
+                    <li>Ngược lại, nếu kết quả hai bên lệch nhau (ví dụ một bên nhắm, một bên mở), trả về <code>"Unknown"</code> để tránh báo động giả khi bị nhiễu.</li>
+                  </ul>
+                </li>
+              </ol>
+            </li>
+          </ul>
+
+          <h3>PHẦN 4: GIẢI THÍCH LUỒNG HÀM <code>main()</code> (Dòng 138 - 440)</h3>
+
+          <h4>1. Thiết lập ban đầu (Dòng 139 - 181)</h4>
+          <pre><code>    <span class="kw">if</span> hasattr(sys.stdout, <span class="str">'reconfigure'</span>):
+        sys.stdout.reconfigure(encoding=<span class="str">'utf-8'</span>)</code></pre>
+          <ul>
+            <li>Cấu hình cổng xuất ra console của Windows hỗ trợ tiếng Việt có dấu giúp phần log in ra không bị lỗi ký tự.</li>
+          </ul>
+
+          <pre><code>    classifier = <span class="cls">EyeClassifier</span>()
+    cap = cv2.VideoCapture(<span class="num">0</span>)</code></pre>
+          <ul>
+            <li>Khởi tạo bộ phân loại AI và mở kết nối tới Webcam (cổng mặc định số 0).</li>
+          </ul>
+
+          <pre><code>    calibrator = <span class="cls">EARCalibrator</span>(...)
+    distraction_detector = <span class="cls">DistractionDetector</span>(...)
+    blink_detector = <span class="cls">BlinkDetector</span>(...)
+    closure_detector = <span class="cls">ContinuousClosureDetector</span>(...)
+    perclos_detector = <span class="cls">PerclosDetector</span>(...)</code></pre>
+          <ul>
+            <li>Khởi tạo 5 đối tượng phân tích trạng thái và hành vi người lái xe (với các cấu hình ngưỡng được truyền vào tương ứng).</li>
+          </ul>
+
+          <pre><code>    <span class="kw">with</span> mp_face_mesh.FaceMesh(
+        max_num_faces=<span class="num">1</span>,
+        refine_landmarks=<span class="kw">True</span>,
+        min_detection_confidence=<span class="num">0.5</span>,
+        min_tracking_confidence=<span class="num">0.5</span>,
+    ) <span class="kw">as</span> face_mesh:</code></pre>
+          <ul>
+            <li>Khởi tạo tiến trình xử lý <strong>FaceMesh</strong> của MediaPipe trong khối lệnh <code>with</code> (để tự động giải phóng tài nguyên khi chương trình kết thúc).</li>
+            <li><code>max_num_faces=1</code>: Chỉ theo dõi tối đa 1 khuôn mặt (tài xế).</li>
+            <li><code>refine_landmarks=True</code>: Bật tính năng định vị tinh chi tiết cho vùng mắt và môi (tạo ra các điểm mốc chính xác hơn xung quanh mắt).</li>
+          </ul>
+
+          <h4>2. Vòng lặp đọc và xử lý hình ảnh camera (Dòng 190 - 432)</h4>
+          <pre><code>        <span class="kw">while</span> <span class="kw">True</span>:
+            current_time = time.time()
+            success, frame = cap.read()
+            ...
+            frame = cv2.flip(frame, <span class="num">1</span>)
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = face_mesh.process(rgb_frame)</code></pre>
+          <ul>
+            <li>Mỗi vòng lặp, hệ thống lấy mốc thời gian hiện tại (<code>current_time</code>), đọc khung hình từ webcam (<code>cap.read()</code>).</li>
+            <li>Lật ngược khung hình theo chiều ngang (<code>cv2.flip</code>) để tạo hiệu ứng gương soi cho người lái xe dễ quan sát.</li>
+            <li>Chuyển đổi màu từ BGR sang RGB và truyền qua phương thức <code>process</code> của <code>face_mesh</code> để tìm kiếm và vẽ các điểm mốc trên mặt. Kết quả lưu tại biến <code>results</code>.</li>
+          </ul>
+
+          <pre><code>            face_detected = results.multi_face_landmarks <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>
+            distraction_detector.update(face_detected, current_time)</code></pre>
+          <ul>
+            <li><code>face_detected</code>: Biến boolean kiểm tra xem có khuôn mặt nào trong khung hình hay không.</li>
+            <li>Cập nhật trạng thái nhận diện khuôn mặt cho bộ phát hiện mất tập trung <code>distraction_detector.update(...)</code>:
+              <ul>
+                <li><strong>Giải thích phương thức <code>DistractionDetector.update(face_detected, current_time)</code> trong <code>distraction.py</code></strong>:
+                  <ul>
+                    <li>Nếu phát hiện khuôn mặt (<code>face_detected</code> là True): Đặt lại biến ghi nhận thời gian mất dấu khuôn mặt <code>self.lost_time = None</code> và tắt cờ mất tập trung <code>self.is_distracted = False</code>.</li>
+                    <li>Nếu không có khuôn mặt: Ghi nhận mốc thời gian bắt đầu mất dấu <code>self.lost_time = current_time</code> (nếu trước đó chưa ghi). Tính khoảng thời gian đã trôi qua kể từ khi mất dấu mặt: <code>elapsed = current_time - self.lost_time</code>. Nếu khoảng thời gian này lớn hơn hoặc bằng ngưỡng cho phép (ví dụ 2.0 giây), đặt cờ cảnh báo <code>self.is_distracted = True</code>.</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+
+          <h4>A. THỂ TRẠNG: PHÁT HIỆN ĐƯỢC KHUÔN MẶT (Dòng 220 - 348)</h4>
+          <pre><code>            <span class="kw">if</span> face_detected:
+                landmarks = results.multi_face_landmarks[<span class="num">0</span>].landmark
+
+                left_eye_pts = get_eye_coordinates(frame, landmarks, LEFT_EYE_INDICES)
+                right_eye_pts = get_eye_coordinates(frame, landmarks, RIGHT_EYE_INDICES)
+
+                left_ear = calculate_ear(left_eye_pts)
+                right_ear = calculate_ear(right_eye_pts)
+                raw_avg_ear = (left_ear + right_ear) / <span class="num">2.0</span></code></pre>
+          <ul>
+            <li>Lấy danh sách các landmarks của khuôn mặt đầu tiên.</li>
+            <li>Trích xuất tọa độ pixel của mắt trái/phải bằng hàm <code>get_eye_coordinates</code>.</li>
+            <li>Tính chỉ số EAR cho mắt trái và mắt phải bằng hàm <code>calculate_ear</code>.
+              <ul>
+                <li><strong>Giải thích hàm <code>calculate_ear(eye_points)</code> trong <code>eye_metrics.py</code></strong>:
+                  <ul>
+                    <li>Tính khoảng cách Euclid giữa 2 cặp điểm mi mắt trên và dưới bằng hàm <code>calculate_distance</code>: <code>vertical_1 = dist(p2, p6)</code>, <code>vertical_2 = dist(p3, p5)</code>.</li>
+                    <li>Tính khoảng cách ngang giữa 2 khóe mắt: <code>horizontal = dist(p1, p4)</code>.</li>
+                    <li>EAR được tính bằng tỉ số: <code>(vertical_1 + vertical_2) / (2.0 * horizontal)</code>. Khi mắt nhắm lại, khoảng cách dọc tiến dần về 0 khiến chỉ số EAR giảm mạnh.</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li>Tính EAR trung bình thô: <code>raw_avg_ear</code>.</li>
+          </ul>
+
+          <pre><code>                <span class="kw">if</span> smoothed_ear <span class="kw">is</span> <span class="kw">None</span>:
+                    smoothed_ear = raw_avg_ear
+                <span class="kw">else</span>:
+                    smoothed_ear = (
+                        EAR_SMOOTHING_ALPHA * raw_avg_ear
+                        + (<span class="num">1.0</span> - EAR_SMOOTHING_ALPHA) * smoothed_ear
+                    )
+                ear_for_decision = smoothed_ear</code></pre>
+          <ul>
+            <li>Sử dụng bộ lọc trung bình trượt lũy thừa (EMA) với hệ số làm mượt <code>EAR_SMOOTHING_ALPHA</code> (0.25) để làm mịn tín hiệu EAR thô. Điều này giúp loại bỏ hiện tượng nhảy/rung landmark nhẹ do camera nhiễu.</li>
+          </ul>
+
+          <pre><code>                label, confidence, left_eye_crop, right_eye_crop = predict_eye_state(
+                    classifier, frame, landmarks
+                )</code></pre>
+          <ul>
+            <li>Gọi hàm <code>predict_eye_state</code> để mô hình học sâu CNN dự đoán mắt đang Nhắm (Closed) hay Mở (Open).</li>
+          </ul>
+
+          <pre><code>                blink_ear_signal = min(left_ear, right_ear)
+                is_ear_closed_for_blink = blink_ear_signal < (ear_threshold + BLINK_EAR_MARGIN)
+                is_cnn_closed = (
+                    label == <span class="str">"Closed"</span>
+                    <span class="kw">and</span> confidence &gt;= CNN_CLOSED_CONFIDENCE_THRESHOLD
+                )
+                is_closed_instant_for_blink = is_ear_closed_for_blink <span class="kw">or</span> is_cnn_closed</code></pre>
+          <ul>
+            <li>Xác định xem mắt có đang ở trạng thái nhắm tức thời tại khung hình này hay không bằng cách kết hợp song song cả 2 tín hiệu:
+              <ol>
+                <li><strong>EAR hình học</strong>: Nếu giá trị EAR nhỏ nhất giữa hai mắt nhỏ hơn ngưỡng đóng mắt đã hiệu chuẩn động cộng với biên an toàn <code>BLINK_EAR_MARGIN</code>.</li>
+                <li><strong>Mô hình CNN</strong>: Nếu AI phân loại là <code>"Closed"</code> với độ tin cậy lớn hơn hoặc bằng <code>0.88</code>.</li>
+              </ol>
+            </li>
+            <li><code>is_closed_instant_for_blink</code> là True nếu thỏa mãn ít nhất 1 trong 2 điều kiện trên. Cách tiếp cận kết hợp (Hybrid) này khắc phục nhược điểm của việc chỉ dùng EAR (người mắt híp, góc quay camera nghiêng) hoặc chỉ dùng CNN (tần suất phản hồi chậm hơn và tốn tài nguyên).</li>
+          </ul>
+
+          <pre><code>                was_calibrating = <span class="kw">not</span> calibrator.is_complete()
+                <span class="kw">if</span> was_calibrating:
+                    calibrator.update(ear_for_decision, current_time)</code></pre>
+          <ul>
+            <li>Nếu hệ thống chưa hoàn thành giai đoạn hiệu chuẩn tự động ban đầu, ta gọi <code>calibrator.update(...)</code> để thu thập dữ liệu EAR lúc mắt tài xế mở tự nhiên.
+              <ul>
+                <li><strong>Giải thích phương thức <code>EARCalibrator.update(ear, current_time)</code> trong <code>ear_calibration.py</code></strong>:
+                  <ul>
+                    <li>Nếu đã có ngưỡng hiệu chuẩn (<code>self.calibrated_threshold</code> khác None) thì bỏ qua.</li>
+                    <li>Ghi lại thời gian bắt đầu hiệu chuẩn <code>self.start_time = current_time</code>.</li>
+                    <li>Trong vòng 5 giây đầu (<code>elapsed < self.duration</code>), liên tục thêm giá trị EAR thu được vào danh sách lịch sử <code>self.ear_history</code>.</li>
+                    <li>Khi hết 5 giây: Tính EAR trung bình lúc mắt mở (<code>avg_ear</code>). Lấy giá trị trung bình này nhân với hệ số điều chỉnh <code>ratio</code> (0.60) để làm ngưỡng đóng mắt. Nhằm đảm bảo an toàn, ngưỡng đóng mắt động này được ép trong khoảng an toàn cố định <code>[0.12, 0.28]</code> bằng hàm <code>max(0.12, min(avg_ear * self.ratio, 0.28))</code>.</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+
+          <pre><code>                is_calibrating = <span class="kw">not</span> calibrator.is_complete()
+
+                <span class="kw">if</span> is_calibrating:
+                    blink_detector.reset()
+                    closure_detector.reset()
+                    perclos_detector.reset()
+                    is_closed = <span class="kw">False</span>
+                    ...</code></pre>
+          <ul>
+            <li>Nếu hệ thống vẫn đang trong quá trình hiệu chuẩn (5 giây đầu), toàn bộ các detector phát hiện buồn ngủ (<code>blink_detector</code>, <code>closure_detector</code>, <code>perclos_detector</code>) sẽ được đặt lại trạng thái trống (reset) và đóng băng để tránh việc đưa ra báo động giả do tài xế chưa được thiết lập ngưỡng EAR phù hợp.</li>
+          </ul>
+
+          <pre><code>                <span class="kw">else</span>:
+                    <span class="kw">if</span> was_calibrating:
+                        blink_detector.reset()
+                        closure_detector.reset()
+                        perclos_detector.reset()
+
+                    blink_detector.update(is_closed_instant_for_blink, current_time)
+                    is_closed = blink_detector.is_closed()
+
+                    closure_detector.update(is_closed, current_time)
+                    perclos_detector.update(is_closed, current_time)
+
+                    alert_long_closed = closure_detector.has_alert()
+                    alert_blink_rate = blink_detector.has_alert()
+                    alert_perclos = perclos_detector.has_alert()</code></pre>
+          <ul>
+            <li>Khi đã kết thúc hiệu chuẩn:
+              <ul>
+                <li>Nếu là khung hình đầu tiên vừa chuyển qua giai đoạn giám sát (<code>was_calibrating</code> vừa chuyển từ True sang False), hệ thống tiến hành dọn sạch các bộ đệm rác trước đó.</li>
+                <li>Cập nhật trạng thái nhắm mắt tức thời vào bộ chớp mắt: <code>blink_detector.update(...)</code>.
+                  <ul>
+                    <li><strong>Giải thích phương thức <code>BlinkDetector.update(is_closed_instant, current_time)</code> trong <code>blink.py</code></strong>:
+                      <ul>
+                        <li>Đầu tiên xóa các mốc thời gian chớp mắt cũ nằm ngoài cửa sổ quan sát 10 giây (<code>_clear_old_history</code>).</li>
+                        <li>Sử dụng thuật toán <strong>debounce</strong> để tránh rung giật tín hiệu: Trạng thái mắt nhắm/mở phải duy trì liên tục qua số khung hình <code>debounce_frames = 2</code> thì mới xác nhận mắt đã nhắm thực sự (<code>self.is_closed_confirmed</code>).</li>
+                        <li>Khi phát hiện sự chuyển đổi trạng thái từ mở sang nhắm thực sự, ghi nhận mốc thời gian bắt đầu nhắm <code>self.closed_start_time = current_time</code>.</li>
+                        <li>Khi mắt mở lại từ trạng thái nhắm: Tính toán thời gian mắt nhắm <code>blink_duration = current_time - self.closed_start_time</code>.</li>
+                        <li>Lọc bỏ nhiễu: Thời gian nhắm mắt phải nằm trong khoảng hợp lệ của một lần chớp mắt thông thường (<code>[0.04, 0.80]</code> giây) và thời gian giữa 2 lần chớp mắt phải lớn hơn thời gian khóa tín hiệu <code>refractory_seconds = 0.05</code> giây. Nếu thỏa mãn, tăng tổng số lần chớp mắt và lưu mốc thời gian vào hàng đợi <code>self.blink_timestamps</code>.</li>
+                        <li>Kiểm tra nếu số lần chớp mắt trong hàng đợi hiện tại vượt quá ngưỡng (10 lần), bật cờ cảnh báo tần suất chớp mắt <code>self.has_rate_alert = True</code>.</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+                <li>Lấy trạng thái nhắm mắt đã được lọc khử nhiễu (<code>is_closed</code>).</li>
+                <li>Cập nhật trạng thái nhắm mắt này vào bộ đo nhắm mắt liên tục <code>closure_detector.update(...)</code>.
+                  <ul>
+                    <li><strong>Giải thích phương thức <code>ContinuousClosureDetector.update(is_closed, current_time)</code> trong <code>eye_closure.py</code></strong>:
+                      <ul>
+                        <li>Nếu mắt nhắm (<code>is_closed</code> là True): Ghi nhận thời điểm bắt đầu nhắm mắt liên tục <code>self.closed_start_time</code> (nếu chưa ghi), sau đó liên tục tính thời gian nhắm mắt <code>self.closed_duration = current_time - self.closed_start_time</code>.</li>
+                        <li>Nếu mắt mở ra: Lập tức xóa trắng thời lượng nhắm mắt về <code>0.0</code> giây và <code>self.closed_start_time = None</code>.</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+                <li>Cập nhật trạng thái nhắm mắt vào bộ đo PERCLOS <code>perclos_detector.update(...)</code>.
+                  <ul>
+                    <li><strong>Giải thích phương thức <code>PerclosDetector.update(is_closed, current_time)</code> trong <code>perclos.py</code></strong>:
+                      <ul>
+                        <li>Thêm cặp dữ liệu <code>(current_time, is_closed)</code> vào hàng đợi mẫu.</li>
+                        <li>Xóa bỏ các mẫu dữ liệu cũ đã nằm ngoài cửa sổ quan sát 60 giây (<code>_clear_old_samples</code>).</li>
+                        <li>Phương thức <code>get_perclos()</code> sẽ tính toán tỷ lệ: Lấy tổng thời gian mắt nhắm tích lũy trong hàng đợi chia cho tổng thời gian thực tế quan sát được trong cửa sổ 60 giây. Nếu tỷ lệ PERCLOS này lớn hơn hoặc bằng ngưỡng <code>0.4</code> (40%), hệ thống sẽ báo động buồn ngủ tích lũy.</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+
+          <h4>B. QUYẾT ĐỊNH CẢNH BÁO HỆ THỐNG (Dòng 300 - 348)</h4>
+          <p>Hệ thống đưa ra trạng thái và bật/tắt còi báo động dựa theo mức độ ưu tiên từ cao xuống thấp:</p>
+          <ol>
+            <li><strong>Nếu đang hiệu chuẩn (<code>is_calibrating</code>)</strong>: Trạng thái <code>"CALIBRATING"</code>, hiển thị tiến độ bằng phần trăm, tắt báo động.</li>
+            <li><strong>Nếu mất tập trung (<code>distraction_detector.has_alert()</code>)</strong>: Trạng thái <code>"DISTRACTED"</code>, hiển thị dòng chữ cảnh báo màu đỏ <code>"WARNING: DISTRACTED!"</code>, gọi hàm <code>play_alarm()</code> phát còi.</li>
+            <li><strong>Nếu phát hiện buồn ngủ (<code>alert_long_closed</code> hoặc <code>alert_blink_rate</code> hoặc <code>alert_perclos</code>)</strong>: Trạng thái <code>"DROWSY"</code>, in lý do tương ứng (nhắm mắt quá lâu, chớp mắt quá nhanh, chỉ số PERCLOS vượt ngưỡng), phát còi báo động <code>play_alarm()</code>.</li>
+            <li><strong>Nếu chỉ là nhắm mắt tức thời ngắn hạn (<code>is_closed</code>)</strong>: Trạng thái <code>"CLOSED"</code>, tắt còi báo động (vì chưa đủ thời gian tối thiểu để coi là ngủ gật).</li>
+            <li><strong>Nếu bình thường</strong>: Trạng thái <code>"OPEN"</code>, tắt còi báo động <code>stop_alarm()</code>.</li>
+          </ol>
+
+          <pre><code>                draw_eye_landmarks(frame, left_eye_pts)
+                draw_eye_landmarks(frame, right_eye_pts)
+                ...
+                print(f<span class="str">"EAR(raw={raw_avg_ear:.2f}, smooth={ear_for_decision:.2f}..."</span>)</code></pre>
+          <ul>
+            <li>Vẽ các điểm mốc mắt lên màn hình và in thông tin log chi tiết ra console để lập trình viên theo dõi các tham số thực tế.</li>
+          </ul>
+
+          <h4>C. THỂ TRẠNG: MẤT KHUÔN MẶT / KHÔNG CÓ KẾT QUẢ FACE MESH (Dòng 350 - 375)</h4>
+          <pre><code>            <span class="kw">else</span>:
+                closure_detector.reset()
+                blink_detector.reset_temp_state()
+                left_eye_crop = <span class="kw">None</span>
+                right_eye_crop = <span class="kw">None</span>
+                smoothed_ear = <span class="kw">None</span>
+                ear_for_decision = <span class="num">0.0</span></code></pre>
+          <ul>
+            <li>Nếu camera không phát hiện thấy khuôn mặt (ví dụ: tài xế quay đi hướng khác hoặc rời khỏi khung hình), ngay lập tức thiết lập lại (reset) trạng thái nhắm mắt liên tục và trạng thái chớp mắt tạm thời để tránh tích lũy dữ liệu rác gây sai lệch khi khuôn mặt xuất hiện trở lại.</li>
+          </ul>
+
+          <pre><code>                <span class="kw">if</span> distraction_detector.has_alert():
+                    perclos_detector.reset()
+                    status = <span class="str">"DISTRACTED"</span>
+                    color = (<span class="num">0</span>, <span class="num">0</span>, <span class="num">255</span>)
+                    alert_msg = <span class="str">"CRITICAL: FACE NOT DETECTED!"</span>
+                    play_alarm()
+                <span class="kw">else</span>:
+                    status = <span class="str">"NO FACE"</span>
+                    color = (<span class="num">0</span>, <span class="num">255</span>, <span class="num">255</span>)
+                    alert_msg = <span class="str">""</span>
+                    stop_alarm()</code></pre>
+          <ul>
+            <li>Nếu thời gian mất dấu khuôn mặt vượt quá ngưỡng (2 giây), coi như tài xế mất tập trung hoàn toàn: Reset bộ đếm PERCLOS, chuyển trạng thái thành <code>"DISTRACTED"</code>, hiển thị cảnh báo đỏ và phát còi báo động.</li>
+            <li>Nếu mới mất dấu khuôn mặt (dưới 2 giây), trạng thái là <code>"NO FACE"</code> và tạm thời tắt còi báo động.</li>
+          </ul>
+
+          <h4>3. Hiển thị Giao diện Người dùng (GUI) và Xử lý phím tắt (Dòng 377 - 432)</h4>
+          <pre><code>            cv2.putText(frame, f<span class="str">"EAR: {ear_for_decision:.2f} (Thresh: {ear_threshold:.2f})"</span>, ...)
+            ...
+            cv2.imshow(<span class="str">"Driver Drowsiness Alert System"</span>, frame)
+
+            <span class="kw">if</span> show_eye_windows:
+                show_eye_preview(LEFT_EYE_WINDOW, left_eye_crop, eye_preview_scale)
+                show_eye_preview(RIGHT_EYE_WINDOW, right_eye_crop, eye_preview_scale)</code></pre>
+          <ul>
+            <li>Dùng hàm <code>cv2.putText</code> vẽ đè tất cả các thông số như EAR hiện tại, trạng thái, thời gian nhắm mắt, tỷ lệ PERCLOS, kết quả dự đoán của AI, tổng số lần chớp mắt... lên góc trên bên trái khung hình camera để người dùng quan sát trực quan.</li>
+            <li>Gọi <code>cv2.imshow</code> hiển thị cửa sổ webcam chính.</li>
+            <li>Nếu cờ <code>show_eye_windows</code> đang bật thì hiển thị thêm hai cửa sổ nhỏ chứa ảnh cận cảnh vùng mắt trái và phải.</li>
+          </ul>
+
+          <pre><code>            key = cv2.waitKey(<span class="num">1</span>) & <span class="num">0xFF</span>
+            <span class="kw">if</span> key <span class="kw">in</span> (ord(<span class="str">"q"</span>), ord(<span class="str">"Q"</span>)):
+                <span class="kw">break</span></code></pre>
+          <ul>
+            <li>Hàm <code>cv2.waitKey(1)</code> dừng tiến trình trong 1 mili giây để lắng nghe sự kiện nhấn phím từ bàn phím:
+              <ul>
+                <li><strong>Phím <code>Q</code></strong>: Thoát khỏi vòng lặp và kết thúc chương trình.</li>
+                <li><strong>Phím <code>C</code></strong>: Reset lại tất cả các bộ phân tích để bắt đầu chạy lại tiến trình hiệu chuẩn (calibrating) ngưỡng EAR động từ đầu.</li>
+                <li><strong>Phím <code>E</code></strong>: Bật/tắt việc hiển thị hai cửa sổ phóng to của mắt. Nếu tắt, gọi hàm <code>destroy_eye_preview_windows()</code> để đóng các cửa sổ nhỏ lại.</li>
+                <li><strong>Phím <code>+</code> hoặc <code>=</code></strong>: Tăng kích thước tỉ lệ phóng to (<code>scale</code>) ảnh mắt preview (tối đa 5.0 lần).</li>
+                <li><strong>Phím <code>-</code> hoặc <code>_</code></strong>: Giảm kích thước tỉ lệ phóng to ảnh mắt preview (tối thiểu 1.0 lần).</li>
+              </ul>
+            </li>
+          </ul>
+
+          <h4>4. Giải phóng tài nguyên trước khi thoát (Dòng 433 - 436)</h4>
+          <pre><code>    stop_alarm()
+    destroy_eye_preview_windows()
+    cap.release()
+    cv2.destroyAllWindows()</code></pre>
+          <ul>
+            <li>Khi thoát khỏi vòng lặp vô hạn (do nhấn phím Q):
+              <ul>
+                <li>Tắt còi báo động.</li>
+                <li>Đóng hai cửa sổ hiển thị phóng to mắt.</li>
+                <li>Giải phóng tài nguyên kết nối webcam (<code>cap.release()</code>).</li>
+                <li>Đóng toàn bộ các cửa sổ giao diện OpenCV (<code>cv2.destroyAllWindows()</code>).</li>
+              </ul>
+            </li>
+          </ul>
+
+          <h3>PHẦN VÀO MAIN (Dòng 439 - 440)</h3>
+          <pre><code><span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    main()</code></pre>
+          <ul>
+            <li>Điểm khởi đầu (Entry point) tiêu chuẩn của Python. Khi chạy trực tiếp file này, nó sẽ gọi hàm <code>main()</code> để bắt đầu toàn bộ luồng xử lý của hệ thống.</li>
+          </ul>
         </div>
       </section>
 
@@ -4334,7 +4894,7 @@
     }
 
     function renderNav() {
-      nav.innerHTML = files.map(file => '<a href="#' + file.slug + '" data-target="' + file.slug + '">' + file.path + '</a>').join('');
+      nav.innerHTML = '<a href="#giai-thich-main" data-target="giai-thich-main">Giải thích chi tiết main.py</a>' + files.map(file => '<a href="#' + file.slug + '" data-target="' + file.slug + '">' + file.path + '</a>').join('');
     }
 
     function renderFile(file) {
@@ -4370,7 +4930,12 @@
 
     function applySearch() {
       const q = search.value.trim().toLowerCase();
-      document.querySelectorAll('.code-line, .overview').forEach(el => {
+      document.querySelectorAll('.code-line, .overview, #giai-thich-main').forEach(el => {
+        if (el.id === 'giai-thich-main') {
+          const text = el.textContent.toLowerCase();
+          el.style.display = (!q || text.includes(q)) ? '' : 'none';
+          return;
+        }
         const text = el.dataset.text || '';
         el.style.display = (!q || text.includes(q)) ? '' : 'none';
       });
