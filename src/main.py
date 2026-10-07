@@ -119,7 +119,7 @@ def predict_eye_state(classifier, frame, landmarks):
     is_open_l = "open" in label_l_normalized
     is_open_r = "open" in label_r_normalized
 
-    # Cach pho bien la doi trang thai dong/mo dong bo hai mat:
+    # doi trang thai dong/mo dong bo hai mat:
     # closed khi ca hai mat closed, open khi ca hai mat open.
     # Chi ket luan Closed/Open khi 2 mat dong bo. Lech 2 ben => Unknown de giam false positive.
     if is_closed_l and is_closed_r:
@@ -241,8 +241,8 @@ def main():
                 label, confidence, left_eye_crop, right_eye_crop = predict_eye_state(
                     classifier, frame, landmarks
                 )
-
-                # Xác định trạng thái nhắm mắt tức thời từ cả EAR hình học và AI CNN
+                
+                # Xác định trạng thái nhắm mắt tức thời từ cả EAR hình học và CNN
                 # Blink rate dung EAR raw de bat kip chop mat nhanh.
                 blink_ear_signal = min(left_ear, right_ear)
                 is_ear_closed_for_blink = blink_ear_signal < (ear_threshold + BLINK_EAR_MARGIN)

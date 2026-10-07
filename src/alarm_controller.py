@@ -6,7 +6,7 @@ pygame.mixer.init()
 
 src_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(src_dir)
-alarm_path = os.path.join(root_dir, "assets", "haruharu.mp3")
+alarm_path = os.path.join(root_dir, "assets", "alarm.wav")
 
 alarm_sound = pygame.mixer.Sound(alarm_path)
 is_playing = False

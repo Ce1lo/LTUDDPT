@@ -1,7 +1,7 @@
 # config.py - System thresholds and runtime parameters
 
 DEFAULT_EAR_THRESHOLD = 0.2
-DROWSY_CLOSED_DURATION = 2.0
+DROWSY_CLOSED_DURATION = 1.5
 
 PERCLOS_WINDOW = 60.0
 PERCLOS_THRESHOLD = 0.4

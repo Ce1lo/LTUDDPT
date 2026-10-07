@@ -1,4 +1,4 @@
-# blink.py - Blink state filtering and blink-rate tracking.
+# blink.py - Loc trang thai nham mat va theo doi tan suat nham mat.
 from collections import deque
 
 

@@ -24,6 +24,7 @@ class PerclosDetector:
         closed_time = 0.0
         total_time = 0.0
 
+        # Tinh thoi gian cua tung doan mau; trang thai cua doan lay theo mau truoc do.
         for index in range(1, len(self.samples)):
             previous_time, previous_closed = self.samples[index - 1]
             current_time, _ = self.samples[index]
@@ -39,7 +40,7 @@ class PerclosDetector:
         if total_time == 0:
             return 0.0
 
-        # Diem GV hay hoi: PERCLOS = tong thoi gian mat nham / tong thoi gian quan sat.
+
         # Chi so nay on dinh hon viec chi bat mot lan nham mat dai, vi no do met moi tich luy.
         return closed_time / total_time
 
